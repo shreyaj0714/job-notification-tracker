@@ -1,16 +1,29 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { jobs } from "@/data/jobs";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
+import { useJobStatus, type JobStatus } from "@/hooks/useJobStatus";
 import JobCard from "@/components/jobs/JobCard";
 import JobDetailModal from "@/components/jobs/JobDetailModal";
+import { toast } from "@/hooks/use-toast";
 import { Bookmark } from "lucide-react";
 import type { Job } from "@/data/jobs";
 
 const Saved = () => {
   const { savedIds, toggleSave } = useSavedJobs();
+  const { getStatus, setStatus } = useJobStatus();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   const savedJobs = jobs.filter((j) => savedIds.has(j.id));
+
+  const handleStatusChange = useCallback(
+    (job: Job, status: JobStatus) => {
+      setStatus(job.id, job.title, job.company, status);
+      if (status !== "Not Applied") {
+        toast({ title: `Status updated: ${status}` });
+      }
+    },
+    [setStatus]
+  );
 
   return (
     <section className="py-4">
@@ -35,8 +48,10 @@ const Saved = () => {
               key={job.id}
               job={job}
               isSaved={true}
+              status={getStatus(job.id)}
               onView={() => setSelectedJob(job)}
               onSave={() => toggleSave(job.id)}
+              onStatusChange={(s) => handleStatusChange(job, s)}
             />
           ))}
         </div>

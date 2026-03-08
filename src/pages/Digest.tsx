@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { jobs } from "@/data/jobs";
 import { loadPreferences } from "@/lib/preferences";
 import { computeMatchScore, getScoreTier } from "@/lib/matchEngine";
+import { getRecentStatusUpdates } from "@/hooks/useJobStatus";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
@@ -14,8 +15,10 @@ import {
   ExternalLink,
   Settings,
   SearchX,
+  Activity,
 } from "lucide-react";
 
+/* ---------- types ---------- */
 interface DigestJob {
   id: string;
   title: string;
@@ -31,6 +34,7 @@ interface StoredDigest {
   jobs: DigestJob[];
 }
 
+/* ---------- helpers ---------- */
 function todayKey(): string {
   return `jobTrackerDigest_${format(new Date(), "yyyy-MM-dd")}`;
 }
@@ -55,9 +59,17 @@ const scoreBadgeClass: Record<string, string> = {
   none: "bg-muted text-muted-foreground",
 };
 
+const statusBadgeClass: Record<string, string> = {
+  Applied: "bg-blue-600/15 text-blue-700 border-blue-300",
+  Rejected: "bg-destructive/15 text-destructive border-destructive/30",
+  Selected: "bg-success/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/30",
+};
+
+/* ---------- component ---------- */
 const Digest = () => {
   const prefs = useMemo(() => loadPreferences(), []);
   const [digest, setDigest] = useState<StoredDigest | null>(() => loadDigest());
+  const recentUpdates = useMemo(() => getRecentStatusUpdates(), []);
 
   const generate = useCallback(() => {
     if (!prefs) return;
@@ -110,7 +122,7 @@ const Digest = () => {
     window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
   }, [digestText]);
 
-  // No preferences
+  /* ---- No preferences ---- */
   if (!prefs) {
     return (
       <section className="py-4">
@@ -127,6 +139,9 @@ const Digest = () => {
             </Link>
           </p>
         </div>
+
+        {/* Still show recent updates even without prefs */}
+        <RecentUpdatesSection updates={recentUpdates} />
       </section>
     );
   }
@@ -162,7 +177,6 @@ const Digest = () => {
         <div className="mt-3 mx-auto max-w-prose">
           {/* Email-style card */}
           <div className="rounded-lg border bg-card p-4">
-            {/* Header */}
             <div className="border-b pb-3 mb-3">
               <h2 className="font-serif text-2xl font-semibold text-foreground">
                 Top 10 Jobs For You — 9AM Digest
@@ -172,7 +186,6 @@ const Digest = () => {
               </p>
             </div>
 
-            {/* Job list */}
             <div className="flex flex-col gap-2">
               {digest.jobs.map((job, i) => {
                 const tier = getScoreTier(job.matchScore);
@@ -212,7 +225,6 @@ const Digest = () => {
               })}
             </div>
 
-            {/* Footer */}
             <div className="border-t mt-3 pt-3">
               <p className="text-xs text-muted-foreground">
                 This digest was generated based on your preferences.
@@ -236,14 +248,50 @@ const Digest = () => {
             </Button>
           </div>
 
-          {/* Simulation note */}
           <p className="mt-3 text-xs text-muted-foreground italic">
             Demo Mode: Daily 9AM trigger simulated manually.
           </p>
         </div>
       )}
+
+      {/* Recent Status Updates */}
+      <RecentUpdatesSection updates={recentUpdates} />
     </section>
   );
 };
+
+/* ---------- Recent Updates sub-component ---------- */
+function RecentUpdatesSection({ updates }: { updates: ReturnType<typeof getRecentStatusUpdates> }) {
+  if (updates.length === 0) return null;
+
+  return (
+    <div className="mt-4 mx-auto max-w-prose">
+      <div className="flex items-center gap-1 mb-2">
+        <Activity className="h-[16px] w-[16px] text-muted-foreground" />
+        <h2 className="font-serif text-xl font-semibold text-foreground">Recent Status Updates</h2>
+      </div>
+      <div className="rounded-lg border bg-card divide-y">
+        {updates.map((u, i) => (
+          <div key={`${u.jobId}-${i}`} className="flex items-center justify-between gap-2 px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground truncate">{u.jobTitle}</p>
+              <p className="text-xs text-muted-foreground">{u.company}</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span
+                className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium ${statusBadgeClass[u.status] ?? "bg-muted text-muted-foreground"}`}
+              >
+                {u.status}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(u.date), "MMM d")}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default Digest;
