@@ -3,10 +3,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock, Bookmark, BookmarkCheck, ExternalLink, Eye } from "lucide-react";
 import type { Job } from "@/data/jobs";
+import { getScoreTier } from "@/lib/matchEngine";
+import { memo } from "react";
 
 interface JobCardProps {
   job: Job;
   isSaved: boolean;
+  matchScore?: number;
   onView: () => void;
   onSave: () => void;
 }
@@ -17,7 +20,14 @@ const sourceVariant: Record<string, "default" | "secondary" | "outline"> = {
   Indeed: "outline",
 };
 
-const JobCard = ({ job, isSaved, onView, onSave }: JobCardProps) => {
+const scoreBadgeClass: Record<string, string> = {
+  high: "bg-success text-success-foreground",
+  medium: "bg-warning text-warning-foreground",
+  low: "bg-secondary text-secondary-foreground",
+  none: "bg-muted text-muted-foreground",
+};
+
+const JobCard = memo(({ job, isSaved, matchScore, onView, onSave }: JobCardProps) => {
   const postedLabel =
     job.postedDaysAgo === 0
       ? "Today"
@@ -25,14 +35,25 @@ const JobCard = ({ job, isSaved, onView, onSave }: JobCardProps) => {
         ? "1 day ago"
         : `${job.postedDaysAgo} days ago`;
 
+  const tier = matchScore !== undefined ? getScoreTier(matchScore) : null;
+
   return (
     <Card className="flex flex-col justify-between">
       <CardHeader className="pb-1">
         <div className="flex items-start justify-between gap-1">
           <CardTitle className="text-lg leading-snug">{job.title}</CardTitle>
-          <Badge variant={sourceVariant[job.source] ?? "outline"} className="shrink-0">
-            {job.source}
-          </Badge>
+          <div className="flex items-center gap-1 shrink-0">
+            {tier !== null && (
+              <span
+                className={`inline-flex items-center rounded-lg px-2 py-0 text-xs font-medium ${scoreBadgeClass[tier]}`}
+              >
+                {matchScore}%
+              </span>
+            )}
+            <Badge variant={sourceVariant[job.source] ?? "outline"} className="shrink-0">
+              {job.source}
+            </Badge>
+          </div>
         </div>
         <CardDescription className="text-sm font-medium">{job.company}</CardDescription>
       </CardHeader>
@@ -80,6 +101,8 @@ const JobCard = ({ job, isSaved, onView, onSave }: JobCardProps) => {
       </CardFooter>
     </Card>
   );
-};
+});
+
+JobCard.displayName = "JobCard";
 
 export default JobCard;
