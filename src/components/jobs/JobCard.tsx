@@ -3,15 +3,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock, Bookmark, BookmarkCheck, ExternalLink, Eye } from "lucide-react";
 import type { Job } from "@/data/jobs";
+import type { JobStatus } from "@/hooks/useJobStatus";
 import { getScoreTier } from "@/lib/matchEngine";
+import StatusButtonGroup from "./StatusButtonGroup";
 import { memo } from "react";
 
 interface JobCardProps {
   job: Job;
   isSaved: boolean;
   matchScore?: number;
+  status: JobStatus;
   onView: () => void;
   onSave: () => void;
+  onStatusChange: (status: JobStatus) => void;
 }
 
 const sourceVariant: Record<string, "default" | "secondary" | "outline"> = {
@@ -27,7 +31,7 @@ const scoreBadgeClass: Record<string, string> = {
   none: "bg-muted text-muted-foreground",
 };
 
-const JobCard = memo(({ job, isSaved, matchScore, onView, onSave }: JobCardProps) => {
+const JobCard = memo(({ job, isSaved, matchScore, status, onView, onSave, onStatusChange }: JobCardProps) => {
   const postedLabel =
     job.postedDaysAgo === 0
       ? "Today"
@@ -73,6 +77,7 @@ const JobCard = memo(({ job, isSaved, matchScore, onView, onSave }: JobCardProps
           <span className="text-muted-foreground">Exp:</span> {job.experience} yrs
         </div>
         <div className="text-sm font-medium text-foreground">{job.salaryRange}</div>
+        <StatusButtonGroup current={status} onChange={onStatusChange} />
       </CardContent>
 
       <CardFooter className="gap-1 pt-1 flex-wrap">

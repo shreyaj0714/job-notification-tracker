@@ -15,6 +15,7 @@ const modes = ["All", "Remote", "Hybrid", "Onsite"];
 const experiences = ["All", "Fresher", "0-1", "1-3", "3-5"];
 const sources = ["All", "LinkedIn", "Naukri", "Indeed"];
 const sortOptions = ["latest", "oldest", "score", "salary"];
+const statusOptions = ["All", "Not Applied", "Applied", "Rejected", "Selected"];
 
 interface FilterBarProps {
   keyword: string;
@@ -29,6 +30,8 @@ interface FilterBarProps {
   onSourceChange: (v: string) => void;
   sort: string;
   onSortChange: (v: string) => void;
+  status: string;
+  onStatusChange: (v: string) => void;
   showOnlyMatches: boolean;
   onShowOnlyMatchesChange: (v: boolean) => void;
   hasPreferences: boolean;
@@ -54,6 +57,8 @@ const FilterBar = ({
   onSourceChange,
   sort,
   onSortChange,
+  status,
+  onStatusChange,
   showOnlyMatches,
   onShowOnlyMatchesChange,
   hasPreferences,
@@ -74,6 +79,7 @@ const FilterBar = ({
         <FilterSelect label="Mode" value={mode} onChange={onModeChange} options={modes} />
         <FilterSelect label="Experience" value={experience} onChange={onExperienceChange} options={experiences} />
         <FilterSelect label="Source" value={source} onChange={onSourceChange} options={sources} />
+        <FilterSelect label="Status" value={status} onChange={onStatusChange} options={statusOptions} />
         <FilterSelect
           label="Sort"
           value={sort}

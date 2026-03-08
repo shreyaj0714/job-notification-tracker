@@ -1,12 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { jobs } from "@/data/jobs";
 import JobCard from "@/components/jobs/JobCard";
 import JobDetailModal from "@/components/jobs/JobDetailModal";
 import FilterBar from "@/components/jobs/FilterBar";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
+import { useJobStatus, type JobStatus } from "@/hooks/useJobStatus";
 import { loadPreferences } from "@/lib/preferences";
 import { computeMatchScore } from "@/lib/matchEngine";
+import { toast } from "@/hooks/use-toast";
 import type { Job } from "@/data/jobs";
 import { Briefcase, Settings } from "lucide-react";
 
@@ -18,6 +20,7 @@ function extractSalaryNumber(salary: string): number {
 const Dashboard = () => {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const { savedIds, toggleSave } = useSavedJobs();
+  const { getStatus, setStatus } = useJobStatus();
   const prefs = useMemo(() => loadPreferences(), []);
   const prefsExist = prefs !== null;
 
@@ -27,6 +30,7 @@ const Dashboard = () => {
   const [experience, setExperience] = useState("All");
   const [source, setSource] = useState("All");
   const [sort, setSort] = useState("latest");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [showOnlyMatches, setShowOnlyMatches] = useState(false);
 
   const scoredJobs = useMemo(() => {
@@ -51,6 +55,7 @@ const Dashboard = () => {
     if (mode !== "All") result = result.filter((r) => r.job.mode === mode);
     if (experience !== "All") result = result.filter((r) => r.job.experience === experience);
     if (source !== "All") result = result.filter((r) => r.job.source === source);
+    if (statusFilter !== "All") result = result.filter((r) => getStatus(r.job.id) === statusFilter);
 
     if (showOnlyMatches && prefs) {
       result = result.filter((r) => r.matchScore >= prefs.minMatchScore);
@@ -74,7 +79,17 @@ const Dashboard = () => {
     }
 
     return result;
-  }, [scoredJobs, keyword, location, mode, experience, source, sort, showOnlyMatches, prefs]);
+  }, [scoredJobs, keyword, location, mode, experience, source, sort, statusFilter, showOnlyMatches, prefs, getStatus]);
+
+  const handleStatusChange = useCallback(
+    (job: Job, status: JobStatus) => {
+      setStatus(job.id, job.title, job.company, status);
+      if (status !== "Not Applied") {
+        toast({ title: `Status updated: ${status}` });
+      }
+    },
+    [setStatus]
+  );
 
   return (
     <section className="py-4">
@@ -108,6 +123,8 @@ const Dashboard = () => {
         onSourceChange={setSource}
         sort={sort}
         onSortChange={setSort}
+        status={statusFilter}
+        onStatusChange={setStatusFilter}
         showOnlyMatches={showOnlyMatches}
         onShowOnlyMatchesChange={setShowOnlyMatches}
         hasPreferences={prefsExist}
@@ -128,8 +145,10 @@ const Dashboard = () => {
               job={job}
               isSaved={savedIds.has(job.id)}
               matchScore={prefsExist ? matchScore : undefined}
+              status={getStatus(job.id)}
               onView={() => setSelectedJob(job)}
               onSave={() => toggleSave(job.id)}
+              onStatusChange={(s) => handleStatusChange(job, s)}
             />
           ))}
         </div>
