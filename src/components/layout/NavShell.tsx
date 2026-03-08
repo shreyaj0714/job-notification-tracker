@@ -21,7 +21,7 @@ const NavShell = ({ children }: { children: React.ReactNode }) => {
       <header className="border-b px-3 py-2">
         <div className="flex items-center justify-between">
           <Link to="/" className="font-serif text-lg font-semibold text-foreground">
-            Job Notification App
+            Job Notification Tracker
           </Link>
 
           {/* Desktop nav */}
